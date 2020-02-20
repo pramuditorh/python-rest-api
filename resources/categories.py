@@ -1,9 +1,10 @@
 from flask import request
 from http import HTTPStatus
 from flask_restful import Resource
-from Model import Category, CategorySchema
+from Model import db, Category, CategorySchema
 
 categories_schema = CategorySchema(many=True)
+category_schema = CategorySchema()
 
 class categories(Resource):
     def get(self):
@@ -32,3 +33,38 @@ class categories(Resource):
         result = category_schema.dump(category).data
 
         return { "status": 'success', 'data': result }, 201
+
+    def put(self):
+        json_data = request.get_json(force=True)
+        if not json_data:
+               return {'message': 'No input data provided'}, 400
+        # Validate and deserialize input
+        data, errors = category_schema.load(json_data)
+        if errors:
+            return errors, 422
+        category = Category.query.filter_by(id=data['id']).first()
+        if not category:
+            return {'message': 'Category does not exist'}, 400
+        category.name = data['name']
+        db.session.commit()
+
+        result = category_schema.dump(category).data
+
+        return { "status": 'success', 'data': result }, 204
+
+    def delete(self):
+        json_data = request.get_json(force=True)
+        if not json_data:
+               return {'message': 'No input data provided'}, 400
+        # Validate and deserialize input
+        data, errors = category_schema.load(json_data)
+        if errors:
+            return errors, 422
+        category = Category.query.filter_by(id=data['id']).delete()
+        if not category:
+            return {'message': 'Category does not exist'}, 400
+        db.session.commit()
+
+        result = category_schema.dump(category).data
+
+        return { "status": 'success', 'data': result }, 204
